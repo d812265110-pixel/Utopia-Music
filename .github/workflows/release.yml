@@ -25,8 +25,8 @@ jobs:
       - name: Extract version
         id: extract_version
         run: |
-          version=$(echo ${{ github.event.head_commit.message }} | grep -oP '(?<=Update: v)\d+\.\d+\.\d+')
-          echo "version=${version}" >> $GITHUB_OUTPUT
+          echo "version=v1.0.0" >> $GITHUB_OUTPUT
+
 
       # Setup Java environment in order to build the Android app.
       - name: Set up Java
