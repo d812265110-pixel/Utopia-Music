@@ -19,23 +19,22 @@ jobs:
         uses: actions/checkout@v5
 
       - name: Replace Icon
-        run: cp icon_new.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+        run: |
+          if [ -f icon_new.png ]; then
+            cp icon_new.png android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+          fi
 
-      # Extract version from commit message
       - name: Extract version
         id: extract_version
         run: |
           echo "version=v1.0.0" >> $GITHUB_OUTPUT
 
-
-      # Setup Java environment in order to build the Android app.
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: 'zulu'
           java-version: '17.x'
 
-      # Gradle cache for faster builds
       - name: Cache Gradle dependencies
         uses: actions/cache@v5
         with:
@@ -46,8 +45,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # Setup the Flutter environment.
-      - run: |
+      - name: Setup the Flutter environment.
+        run: |
           pip install -U yq
           echo "FLUTTER_VERSION=$(yq -r .environment.flutter pubspec.yaml | sed 's/\^//g')" >> $GITHUB_ENV
       - uses: subosito/flutter-action@v2
@@ -55,55 +54,19 @@ jobs:
           channel: 'stable'
           flutter-version: "${{ env.FLUTTER_VERSION }}"
 
-      #
-      - run: |
-          echo keyPassword=123456 >> ${{env.PROPERTIES_PATH}}
-          echo storePassword=123456 >> ${{env.PROPERTIES_PATH}}
-          echo keyAlias=upload >> ${{env.PROPERTIES_PATH}}
-
-      #
-      - run: echo "${{ secrets.KEYSTORE2 }}" | base64 --decode > android/app/key.jks
-
-      # Get Flutter dependencies.
-      - name: Get Flutter dependencies
+      - name: Get Flutter dependencies.
         run: flutter pub get
 
-      # # Check for any formatting issues in the code.
-      # - name: Check code formatting
-      #   run: dart format --set-exit-if-changed .
+      - name: Build debug APK
+        run: flutter build apk --debug --target-platform=android-arm64
 
-      # Statically analyze the Dart code for any errors.
-      - name: Analyze Dart code
-        run: flutter analyze .
-
-      # Build arm64 APK for GitHub release
-      - name: Build arm64 APK
-        run: flutter build apk --release --split-per-abi --target-platform="android-arm64" --flavor github
-
-      # Release arm64 generated APK
-      - name: Release arm64 APK
+      - name: Release debug APK
         uses: svenstaro/upload-release-action@v2
         with:
-          repo_name: gokadzev/Musify
+          repo_name: gokadze/Musify
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/app/outputs/flutter-apk/app-arm64-v8a-github-release.apk
-          asset_name: Musify-arm64-v8a.apk
-          tag: ${{ steps.extract_version.outputs.version }}
-          prerelease: false
-          overwrite: true
-
-      # Build universal APK
-      - name: Build universal APK
-        run: flutter build apk --release --flavor github
-
-      # Release universal generated APK
-      - name: Release universal APK
-        uses: svenstaro/upload-release-action@v2
-        with:
-          repo_name: gokadzev/Musify
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-          file: build/app/outputs/flutter-apk/app-github-release.apk
-          asset_name: Musify.apk
+          file: build/app/outputs/flutter-apk/app-debug.apk
+          asset_name: Utopia-Music-arm64.apk
           tag: ${{ steps.extract_version.outputs.version }}
           prerelease: false
           overwrite: true
